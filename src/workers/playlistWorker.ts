@@ -4,6 +4,8 @@ import { analyzeMood } from "../services/claude";
 import { searchTracks } from "../services/spotify";
 import logger from "../logger";
 import dotenv from "dotenv";
+import { getIO } from "../socket";
+
 
 dotenv.config();
 
@@ -54,7 +56,8 @@ async function startWorker() {
         const tracks = await searchTracks(query, artist);
         logger.info(`Encontradas ${tracks.length} canciones`);
 
-        // paso 3 — guardamos el resultado en la BD
+
+        // paso 3 — guardamos el resultado en la DB
         await prisma.playlist.update({
           where: { jobId },
           data: {
@@ -66,6 +69,7 @@ async function startWorker() {
         // ack — le decimos a RabbitMQ que el mensaje fue procesado correctamente
         // RabbitMQ lo elimina de la cola
         channel.ack(msg);
+        getIO().emit(`playlist:${jobId}`, { status: "completed", tracks });
         logger.info(`Job ${jobId} completado`);
 
       } catch (error) {
@@ -90,4 +94,5 @@ async function startWorker() {
   }
 }
 
-startWorker();
+
+export { startWorker };

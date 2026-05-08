@@ -6,12 +6,28 @@ import { PrismaClient } from "@prisma/client";
 import authRouter from "./routes/auth";
 import playlistsRouter from "./routes/playlists";
 import logger from "./logger";
+import { initSocket } from "./socket";
+import { createServer } from "http";
+import { startWorker } from "./workers/playlistWorker";
+
+
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 const prisma = new PrismaClient();
+const server = createServer(app);
+const io = initSocket(server);
+
+io.on('connection', (socket) => {
+  logger.info(`Cliente conectado: ${socket.id}`);
+  
+  socket.on('disconnect', () => {
+    logger.info(`Cliente desconectado: ${socket.id}`);
+  });
+});
+
 
 // rate limiter general — 100 peticiones por 15 minutos por IP
 const generalLimiter = rateLimit({
@@ -76,6 +92,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ error: "Error interno del servidor" });
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   logger.info(`MoodTune server running on port ${PORT}`);
+  startWorker();
 });
