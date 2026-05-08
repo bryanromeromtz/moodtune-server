@@ -69,7 +69,13 @@ async function startWorker() {
         // ack — le decimos a RabbitMQ que el mensaje fue procesado correctamente
         // RabbitMQ lo elimina de la cola
         channel.ack(msg);
-        getIO().emit(`playlist:${jobId}`, { status: "completed", tracks });
+        getIO().emit(`playlist:${jobId}`, { 
+          status: "completed", 
+          tracks,
+          mood,
+          genre,
+          artist
+        });
         logger.info(`Job ${jobId} completado`);
 
       } catch (error) {
